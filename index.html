@@ -109,8 +109,7 @@
             width: 100,  // Enlarged player
             height: 100, // Enlarged player
             speed: 5,
-            health: 100,
-            lastX: canvas.width / 2 - 50
+            health: 100
         };
 
         let bullets = [];
@@ -191,6 +190,17 @@
             });
         }
 
+        function createEnemy() {
+            const enemy = {
+                x: Math.random() * (canvas.width - 100),
+                y: -100,
+                width: 100,  // Enlarged enemy size
+                height: 100,
+                health: 10  // Each enemy requires 10 shots to be destroyed
+            };
+            enemies.push(enemy);
+        }
+
         function createExplosion(x, y) {
             explosions.push({ x, y, frame: 0, totalFrames: 16 });
         }
@@ -235,7 +245,7 @@
         }
 
         function updateEnemies() {
-            enemies = enemies.filter(enemy => enemy.y < canvas.height);
+            enemies = enemies.filter(enemy => enemy.y < canvas.height && enemy.health > 0);
             enemies.forEach(enemy => {
                 enemy.y += 2;
                 if (Math.random() < 0.01) enemyShoot(enemy);
@@ -243,7 +253,27 @@
         }
 
         function checkCollisions() {
-            // Collision logic remains the same, but now plays the hit sound.
+            bullets.forEach((bullet, bulletIndex) => {
+                enemies.forEach((enemy, enemyIndex) => {
+                    if (
+                        bullet.x < enemy.x + enemy.width &&
+                        bullet.x + 5 > enemy.x &&
+                        bullet.y < enemy.y + enemy.height &&
+                        bullet.y + 15 > enemy.y
+                    ) {
+                        enemy.health -= 1;
+                        bullets.splice(bulletIndex, 1);
+                        if (enemy.health <= 0) {
+                            score += 100;
+                            document.getElementById('scoreValue').innerText = score;
+                            createExplosion(enemy.x, enemy.y);
+                            playExplosionSound();
+                            enemies.splice(enemyIndex, 1);
+                        }
+                    }
+                });
+            });
+
             enemyBullets.forEach((bullet, bulletIndex) => {
                 if (
                     bullet.x < player.x + player.width &&
@@ -299,7 +329,15 @@
         }
 
         function resetGame() {
-            // Reset the game state here.
+            player.health = 100;
+            bullets = [];
+            enemyBullets = [];
+            enemies = [];
+            score = 0;
+            gameActive = true;
+            document.getElementById('gameOver').style.display = 'none';
+            backgroundMusic.play();
+            createEnemy();
         }
 
         document.addEventListener('keydown', (e) => {
@@ -323,7 +361,14 @@
             }
         });
 
+        canvas.addEventListener('mousemove', (e) => {
+            const rect = canvas.getBoundingClientRect();
+            player.x = e.clientX - rect.left - player.width / 2;
+            player.y = e.clientY - rect.top - player.height / 2;
+        });
+
         createStars();
+        createEnemy();
         updateGame();
         backgroundMusic.play();  // Start background music on game start.
     </script>
